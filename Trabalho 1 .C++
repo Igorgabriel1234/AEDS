@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
-#include <ctime>
 
 using namespace std;
 using namespace std::chrono;
@@ -11,8 +10,7 @@ void bubbleSort(int arr[], int n);
 void bubbleSortMelhorado(int arr[], int n);
 void selectionSort(int arr[], int n);
 void insertionSort(int arr[], int n);
-void quickSort(int arr[], int low, int high);
-int partition(int arr[], int low, int high);
+void quicksort(int v[], int left, int right);
 
 // Funções auxiliares
 void carregarDados(const string& filename, int arr[], int n);
@@ -30,20 +28,29 @@ int main() {
     carregarDados("cresc_100000.txt", arrCrescente, TAMANHO);
 
     // Executar e medir o tempo dos algoritmos com os dados aleatórios
-    double tempoAleatorioQuick = medirTempoExecucaoQuick(quickSort, arrAleatorio, 0, TAMANHO - 1, "Quick Sort Aleatório");
+    cout << "Algoritmos com dados Aleatórios:\n";
+    medirTempoExecucao(bubbleSort, arrAleatorio, TAMANHO, "Bubble Sort");
+    carregarDados("aleat_100000.txt", arrAleatorio, TAMANHO);  // Recarregar dados para evitar ordenar o array já ordenado
+    medirTempoExecucao(bubbleSortMelhorado, arrAleatorio, TAMANHO, "Bubble Sort Melhorado");
+    carregarDados("aleat_100000.txt", arrAleatorio, TAMANHO);
+    medirTempoExecucao(selectionSort, arrAleatorio, TAMANHO, "Selection Sort");
+    carregarDados("aleat_100000.txt", arrAleatorio, TAMANHO);
+    medirTempoExecucao(insertionSort, arrAleatorio, TAMANHO, "Insertion Sort");
+    carregarDados("aleat_100000.txt", arrAleatorio, TAMANHO);
+    medirTempoExecucaoQuick(quicksort, arrAleatorio, 0, TAMANHO - 1, "Quick Sort");
 
     // Recarregar os dados para o próximo teste com o array crescente
-    double tempoCrescenteQuick = medirTempoExecucaoQuick(quickSort, arrCrescente, 0, TAMANHO - 1, "Quick Sort Crescente");
-
-    // Comparar os tempos
-    cout << "Tempo Quick Sort Aleatório: " << tempoAleatorioQuick << " segundos" << endl;
-    cout << "Tempo Quick Sort Crescente: " << tempoCrescenteQuick << " segundos" << endl;
-    
-    if (tempoAleatorioQuick > tempoCrescenteQuick) {
-        cout << "O Quick Sort com dados aleatórios foi " << tempoAleatorioQuick - tempoCrescenteQuick << " segundos mais lento." << endl;
-    } else {
-        cout << "O Quick Sort com dados crescentes foi " << tempoCrescenteQuick - tempoAleatorioQuick << " segundos mais lento." << endl;
-    }
+    cout << "\nAlgoritmos com dados Crescentes:\n";
+    carregarDados("cresc_100000.txt", arrCrescente, TAMANHO);
+    medirTempoExecucao(bubbleSort, arrCrescente, TAMANHO, "Bubble Sort com Crescente");
+    carregarDados("cresc_100000.txt", arrCrescente, TAMANHO); 
+    medirTempoExecucao(bubbleSortMelhorado, arrCrescente, TAMANHO, "Bubble Sort Melhorado com Crescente");
+    carregarDados("cresc_100000.txt", arrCrescente, TAMANHO); 
+    medirTempoExecucao(selectionSort, arrCrescente, TAMANHO, "Selection Sort com Crescente");
+    carregarDados("cresc_100000.txt", arrCrescente, TAMANHO); 
+    medirTempoExecucao(insertionSort, arrCrescente, TAMANHO, "Insertion Sort com Crescente");
+    carregarDados("cresc_100000.txt", arrCrescente, TAMANHO);
+    medirTempoExecucaoQuick(quicksort, arrCrescente, 0, TAMANHO - 1, "Quick Sort com Crescente");
 
     return 0;
 }
@@ -62,12 +69,12 @@ bool verificarOrdenacao(int arr[], int n) {
 }
 
 double medirTempoExecucao(void (*sortFunc)(int[], int), int arr[], int n, const string& nomeAlgoritmo) {
-    clock_t start = clock(); // clock inicializado
+    auto start = high_resolution_clock::now(); // clock inicializado
     sortFunc(arr, n);
-    clock_t end = clock();
+    auto end = high_resolution_clock::now();
 
-    double duration = double(end - start) / CLOCKS_PER_SEC; // cálculo do tempo em segundos
-    cout << nomeAlgoritmo << " levou " << duration << " segundos para executar." << endl;
+    double duration = duration_cast<milliseconds>(end - start).count(); // cálculo do tempo em milissegundos
+    cout << nomeAlgoritmo << " levou " << duration << " ms para executar." << endl;
 
     if (verificarOrdenacao(arr, n)) {
         cout << "Ordenação correta." << endl;
@@ -79,12 +86,12 @@ double medirTempoExecucao(void (*sortFunc)(int[], int), int arr[], int n, const 
 }
 
 double medirTempoExecucaoQuick(void (*sortFunc)(int[], int, int), int arr[], int low, int high, const string& nomeAlgoritmo) {
-    clock_t start = clock(); // clock inicializado
+    auto start = high_resolution_clock::now(); // clock inicializado
     sortFunc(arr, low, high);
-    clock_t end = clock();
+    auto end = high_resolution_clock::now();
 
-    double duration = double(end - start) / CLOCKS_PER_SEC; // cálculo do tempo em segundos
-    cout << nomeAlgoritmo << " levou " << duration << " segundos para executar." << endl;
+    double duration = duration_cast<milliseconds>(end - start).count(); // cálculo do tempo em milissegundos
+    cout << nomeAlgoritmo << " levou " << duration << " ms para executar." << endl;
 
     if (verificarOrdenacao(arr, high - low + 1)) {
         cout << "Ordenação correta." << endl;
@@ -145,24 +152,25 @@ void insertionSort(int arr[], int n) {
     }
 }
 
-void quickSort(int arr[], int low, int high) {
-    if (low < high) {
-        int pi = partition(arr, low, high);
-        quickSort(arr, low, pi - 1);
-        quickSort(arr, pi + 1, high);
-    }
-}
+// Função quicksort conforme o exemplo da imagem
+void quicksort(int v[], int left, int right) {
+    int pivo = v[(left + right) / 2];
+    int i = left;
+    int j = right;
 
-int partition(int arr[], int low, int high) {
-    int pivot = arr[high];
-    int i = (low - 1);
+    do {
+        while (v[i] < pivo) i++;
+        while (v[j] > pivo) j--;
 
-    for (int j = low; j <= high - 1; j++) {
-        if (arr[j] < pivot) {
+        if (i <= j) {
+            int aux = v[i];
+            v[i] = v[j];
+            v[j] = aux;
             i++;
-            swap(arr[i], arr[j]);
+            j--;
         }
-    }
-    swap(arr[i + 1], arr[high]);
-    return (i + 1);
+    } while (i <= j);
+
+    if (left < j) quicksort(v, left, j);
+    if (i < right) quicksort(v, i, right);
 }
